@@ -58,9 +58,14 @@ class StringScanner {
   String? _getDartSdkPath() {
     // 验证 SDK 路径是否有效
     bool isValidSdkPath(String path) {
-      final libPath = join(path, 'lib');
-      final metadataPath = join(libPath, '_internal', 'sdk_library_metadata', 'lib', 'libraries.dart');
-      return Directory(libPath).existsSync() && File(metadataPath).existsSync();
+      try {
+        final libPath = join(path, 'lib');
+        final metadataPath = join(libPath, '_internal', 'sdk_library_metadata', 'lib', 'libraries.dart');
+        return Directory(libPath).existsSync() && File(metadataPath).existsSync();
+      } catch (e) {
+        print('Error validating SDK path: $e');
+        return false;
+      }
     }
 
     // 尝试从 Flutter 环境变量获取
@@ -87,6 +92,13 @@ class StringScanner {
       if (isValidSdkPath(path)) {
         return path;
       }
+    }
+
+    // 尝试直接使用 Flutter 默认路径
+    final defaultFlutterPath = '/Users/huazi/development/flutter/bin/cache/dart-sdk';
+    print('Trying default Flutter path: $defaultFlutterPath');
+    if (isValidSdkPath(defaultFlutterPath)) {
+      return defaultFlutterPath;
     }
 
     print('Failed to find valid Dart SDK path');
