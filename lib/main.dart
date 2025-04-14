@@ -34,9 +34,17 @@ class HomeScreen extends ConsumerWidget {
         title: const Text('Flutter String Scanner'),
         actions: [
           if (state.results != null)
-            IconButton(
-              icon: const Icon(Icons.save),  // 将 Icons.export 改为 Icons.save
-              onPressed: () => _exportResults(state.results!),
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.save),
+                  onPressed: () => _exportResults(state.results!),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.code),
+                  onPressed: () => ref.read(scanProvider.notifier).exportAsJson(),
+                ),
+              ],
             ),
         ],
       ),

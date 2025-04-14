@@ -70,6 +70,19 @@ class ScanNotifier extends StateNotifier<ScanState> {
       );
     }
   }
+
+  Future<void> exportAsJson() async {
+    if (state.results == null) return;
+    
+    try {
+      final path = await _fileSelector.exportAsJson(state.results!);
+      if (path != null) {
+        print('Results exported to: $path');
+      }
+    } catch (e) {
+      state = state.copyWith(error: 'Failed to export results: $e');
+    }
+  }
 }
 
 final scanProvider = StateNotifierProvider<ScanNotifier, ScanState>((ref) {
