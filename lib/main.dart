@@ -42,7 +42,6 @@ class HomeScreen extends ConsumerWidget {
           // 左侧面板
           Container(
             width: 300,
-            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(8),
@@ -54,191 +53,28 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '字符串扫描器',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const Text(
-                  '扫描项目中的字符串',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 30),
-                // 扫描控制区域
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Colors.grey[200]!,
-                      width: 1,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    '字符串扫描器',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '扫描控制',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // 项目选择区域
-                      GestureDetector(
-                        onTap: () => ref.read(scanProvider.notifier).selectProject(),
-                        child: DragTarget<String>(
-                          onAccept: (path) {
-                            if (Directory(path).existsSync()) {
-                              ref.read(scanProvider.notifier).setProjectPath(path);
-                            }
-                          },
-                          onWillAccept: (data) {
-                            return data != null && Directory(data).existsSync();
-                          },
-                          builder: (context, candidateData, rejectedData) {
-                            final isDragging = candidateData.isNotEmpty;
-                            return DottedBorder(
-                              color: isDragging ? colorScheme.primary : Colors.grey[400]!,
-                              strokeWidth: 1,
-                              dashPattern: const [6, 3],
-                              borderType: BorderType.RRect,
-                              radius: const Radius.circular(8),
-                              padding: EdgeInsets.zero,
-                              child: Container(
-                                padding: const EdgeInsets.all(20),
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  color: isDragging ? colorScheme.primary.withOpacity(0.05) : null,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Icon(
-                                      Icons.folder_open_outlined,
-                                      size: 40,
-                                      color: isDragging ? colorScheme.primary : colorScheme.primary,
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      state.projectPath ?? '点击或将文件夹拖拽到此处',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // 扫描按钮
-                      SizedBox(
-                        width: double.infinity,
-                        child: Column(
-                          children: [
-                            FilledButton.icon(
-                              onPressed: () {
-                                if (state.projectPath != null) {
-                                  ref.read(scanProvider.notifier).scanProject();
-                                } else {
-                                  ref.read(scanProvider.notifier).selectProject();
-                                }
-                              },
-                              icon: Icon(
-                                state.isScanning ? Icons.stop : Icons.play_arrow,
-                              ),
-                              label: Text(
-                                state.isScanning ? '停止扫描' : '开始扫描',
-                              ),
-                            ),
-                            if (state.isScanning) ...[
-                              const SizedBox(height: 16),
-                              LinearProgressIndicator(
-                                value: state.progress,
-                                backgroundColor: Colors.grey[200],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                '正在扫描: ${state.currentFile?.split('/').last ?? ''}',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '进度: ${(state.progress * 100).toStringAsFixed(1)}% (${state.scannedFiles}/${state.totalFiles})',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 30),
-                // 扫描统计
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Colors.grey[200]!,
-                      width: 1,
+                  const Text(
+                    '扫描项目中的字符串',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
                     ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '扫描统计',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      _buildStatItem(
-                        icon: Icons.text_fields,
-                        label: '字符串数量',
-                        value: state.results?.values
-                            .fold(0, (sum, strings) => sum + strings.length)
-                            .toString() ?? '0',
-                      ),
-                      const SizedBox(height: 10),
-                      _buildStatItem(
-                        icon: Icons.insert_drive_file,
-                        label: '文件数量',
-                        value: state.results?.length.toString() ?? '0',
-                      ),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-                // 导出选项
-                if (state.results != null) ...[
+                  const SizedBox(height: 30),
+                  // 扫描控制区域
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -251,37 +87,208 @@ class HomeScreen extends ConsumerWidget {
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Text(
-                          '导出选项',
+                          '扫描控制',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                         const SizedBox(height: 20),
-                        _buildExportButton(
-                          icon: Icons.code,
-                          label: '导出为 JSON',
-                          onPressed: () => ref.read(scanProvider.notifier).exportAsJson(),
+                        // 项目选择区域
+                        GestureDetector(
+                          onTap: () => ref.read(scanProvider.notifier).selectProject(),
+                          child: DragTarget<String>(
+                            onAccept: (path) {
+                              if (Directory(path).existsSync()) {
+                                ref.read(scanProvider.notifier).setProjectPath(path);
+                              }
+                            },
+                            onWillAccept: (data) {
+                              return data != null && Directory(data).existsSync();
+                            },
+                            builder: (context, candidateData, rejectedData) {
+                              final isDragging = candidateData.isNotEmpty;
+                              return DottedBorder(
+                                color: isDragging ? colorScheme.primary : Colors.grey[400]!,
+                                strokeWidth: 1,
+                                dashPattern: const [6, 3],
+                                borderType: BorderType.RRect,
+                                radius: const Radius.circular(8),
+                                padding: EdgeInsets.zero,
+                                child: Container(
+                                  padding: const EdgeInsets.all(20),
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    color: isDragging ? colorScheme.primary.withOpacity(0.05) : null,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.folder_open_outlined,
+                                        size: 40,
+                                        color: isDragging ? colorScheme.primary : colorScheme.primary,
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        state.projectPath ?? '点击或将文件夹拖拽到此处',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ),
-                        const SizedBox(height: 10),
-                        _buildExportButton(
-                          icon: Icons.table_chart,
-                          label: '导出为 CSV',
-                          onPressed: () => ref.read(scanProvider.notifier).exportAsCsv(),
-                        ),
-                        const SizedBox(height: 10),
-                        _buildExportButton(
-                          icon: Icons.language,
-                          label: '导出本地化文件',
-                          onPressed: () => ref.read(scanProvider.notifier).exportAsArb(),
+                        const SizedBox(height: 20),
+                        // 扫描按钮和进度
+                        SizedBox(
+                          width: double.infinity,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              FilledButton.icon(
+                                onPressed: () {
+                                  if (state.projectPath != null) {
+                                    ref.read(scanProvider.notifier).scanProject();
+                                  } else {
+                                    ref.read(scanProvider.notifier).selectProject();
+                                  }
+                                },
+                                icon: Icon(
+                                  state.isScanning ? Icons.stop : Icons.play_arrow,
+                                ),
+                                label: Text(
+                                  state.isScanning ? '停止扫描' : '开始扫描',
+                                ),
+                              ),
+                              if (state.isScanning) ...[
+                                const SizedBox(height: 16),
+                                LinearProgressIndicator(
+                                  value: state.progress,
+                                  backgroundColor: Colors.grey[200],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '正在扫描: ${state.currentFile?.split('/').last ?? ''}',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '进度: ${(state.progress * 100).toStringAsFixed(1)}% (${state.scannedFiles}/${state.totalFiles})',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(height: 30),
+                  // 扫描统计
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.grey[200]!,
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          '扫描统计',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        _buildStatItem(
+                          icon: Icons.text_fields,
+                          label: '字符串数量',
+                          value: state.results?.values
+                              .fold(0, (sum, strings) => sum + strings.length)
+                              .toString() ?? '0',
+                        ),
+                        const SizedBox(height: 10),
+                        _buildStatItem(
+                          icon: Icons.insert_drive_file,
+                          label: '文件数量',
+                          value: state.results?.length.toString() ?? '0',
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  // 导出选项
+                  if (state.results != null)
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.grey[200]!,
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            '导出选项',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          _buildExportButton(
+                            icon: Icons.code,
+                            label: '导出为 JSON',
+                            onPressed: () => ref.read(scanProvider.notifier).exportAsJson(),
+                          ),
+                          const SizedBox(height: 10),
+                          _buildExportButton(
+                            icon: Icons.table_chart,
+                            label: '导出为 CSV',
+                            onPressed: () => ref.read(scanProvider.notifier).exportAsCsv(),
+                          ),
+                          const SizedBox(height: 10),
+                          _buildExportButton(
+                            icon: Icons.language,
+                            label: '导出本地化文件',
+                            onPressed: () => ref.read(scanProvider.notifier).exportAsArb(),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
-              ],
+              ),
             ),
           ),
           // 右侧结果展示区域
