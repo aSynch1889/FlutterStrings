@@ -83,6 +83,19 @@ class ScanNotifier extends StateNotifier<ScanState> {
       state = state.copyWith(error: 'Failed to export results: $e');
     }
   }
+
+  Future<void> exportAsCsv() async {
+    if (state.results == null) return;
+    
+    try {
+      final path = await _fileSelector.exportAsCsv(state.results!);
+      if (path != null) {
+        print('Results exported to CSV: $path');
+      }
+    } catch (e) {
+      state = state.copyWith(error: 'Failed to export CSV: $e');
+    }
+  }
 }
 
 final scanProvider = StateNotifierProvider<ScanNotifier, ScanState>((ref) {

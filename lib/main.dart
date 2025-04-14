@@ -38,7 +38,7 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 IconButton(
                   icon: const Icon(Icons.save),
-                  onPressed: () => _exportResults(state.results!),
+                  onPressed: () => ref.read(scanProvider.notifier).exportAsCsv(),
                 ),
                 IconButton(
                   icon: const Icon(Icons.code),

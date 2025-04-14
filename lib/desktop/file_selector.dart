@@ -102,4 +102,70 @@ class FileSelector {
       rethrow;
     }
   }
+
+  Future<String?> exportAsCsv(Map<String, List<String>> results) async {
+    final result = await file_selector.getSaveLocation(
+      suggestedName: 'strings_export.csv',
+      acceptedTypeGroups: [
+        const file_selector.XTypeGroup(
+          label: 'CSV files',
+          extensions: ['csv'],
+          mimeTypes: ['text/csv'],
+        ),
+      ],
+      initialDirectory: Platform.environment['HOME'],
+      confirmButtonText: 'Save CSV',
+    );
+    
+    if (result == null) {
+      print('User cancelled file save dialog');
+      return null;
+    }
+
+    print('Saving CSV file to: ${result.path}');
+
+    // 构建 CSV 内容
+    final csvRows = <List<String>>[];
+    
+    // 添加表头
+    csvRows.add(['File Path', 'String Value', 'Length', 'Is Multiline']);
+    
+    // 添加数据行
+    results.forEach((filePath, strings) {
+      for (final str in strings) {
+        csvRows.add([
+          filePath,
+          str,
+          str.length.toString(),
+          str.contains('\n').toString(),
+        ]);
+      }
+    });
+
+    // 将数据转换为 CSV 格式
+    final csvContent = csvRows.map((row) => row.map((cell) {
+      // 处理包含逗号、引号或换行符的单元格
+      if (cell.contains(',') || cell.contains('"') || cell.contains('\n')) {
+        return '"${cell.replaceAll('"', '""')}"';
+      }
+      return cell;
+    }).join(',')).join('\n');
+
+    // 使用 UTF-8 编码并确保中文字符正确显示
+    final bytes = utf8.encode(csvContent);
+    final file = file_selector.XFile.fromData(
+      Uint8List.fromList(bytes),
+      mimeType: 'text/csv; charset=utf-8',
+      name: 'flutter_strings_${DateTime.now().toIso8601String()}.csv',
+    );
+    
+    try {
+      await file.saveTo(result.path);
+      print('Successfully saved CSV file');
+      return result.path;
+    } catch (e) {
+      print('Error saving CSV file: $e');
+      rethrow;
+    }
+  }
 }
