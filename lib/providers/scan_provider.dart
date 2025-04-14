@@ -53,6 +53,14 @@ class ScanNotifier extends StateNotifier<ScanState> {
     }
   }
 
+  void setProjectPath(String path) {
+    state = state.copyWith(
+      projectPath: path,
+      results: null,
+      error: null,
+    );
+  }
+
   Future<void> scanProject() async {
     if (state.projectPath == null) return;
 
@@ -94,6 +102,19 @@ class ScanNotifier extends StateNotifier<ScanState> {
       }
     } catch (e) {
       state = state.copyWith(error: 'Failed to export CSV: $e');
+    }
+  }
+
+  Future<void> exportAsArb() async {
+    if (state.results == null) return;
+    
+    try {
+      final path = await _fileSelector.exportAsArb(state.results!);
+      if (path != null) {
+        print('Results exported to ARB: $path');
+      }
+    } catch (e) {
+      state = state.copyWith(error: 'Failed to export ARB: $e');
     }
   }
 }

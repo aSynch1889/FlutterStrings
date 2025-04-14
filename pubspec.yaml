@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.7.0
+  sdk: '>=3.0.0 <4.0.0'
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -34,10 +34,11 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  analyzer: ^7.3.0
+  analyzer: ^6.0.0
   file_selector: ^1.0.3
-  path_provider: ^2.1.5
-  flutter_riverpod: ^2.6.1
+  path: ^1.8.3
+  flutter_riverpod: ^2.4.9
+  dotted_border: ^2.1.0
 
 dev_dependencies:
   flutter_test:
@@ -48,7 +49,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
+  flutter_lints: ^2.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -91,3 +92,17 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+macos:
+  entitlements:
+    com.apple.security.files.user-selected.read-write: true
+    com.apple.security.files.downloads.read-write: true
+    com.apple.security.files.pictures.read-write: true
+    com.apple.security.files.movies.read-write: true
+    com.apple.security.files.music.read-write: true
+    com.apple.security.files.document.read-write: true
+    com.apple.security.files.all: true
+    com.apple.security.temporary-exception.files.absolute-path.read-write: 
+      - /Users/huazi/development/flutter/bin/cache/dart-sdk
+      - /usr/local/opt/dart/libexec
+      - /usr/lib/dart

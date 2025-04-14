@@ -168,4 +168,67 @@ class FileSelector {
       rethrow;
     }
   }
+
+  Future<String?> exportAsArb(Map<String, List<String>> results) async {
+    final result = await file_selector.getSaveLocation(
+      suggestedName: 'app_en.arb',
+      acceptedTypeGroups: [
+        const file_selector.XTypeGroup(
+          label: 'ARB files',
+          extensions: ['arb'],
+          mimeTypes: ['application/json'],
+        ),
+      ],
+      initialDirectory: Platform.environment['HOME'],
+      confirmButtonText: 'Save ARB',
+    );
+    
+    if (result == null) {
+      print('User cancelled file save dialog');
+      return null;
+    }
+
+    print('Saving ARB file to: ${result.path}');
+
+    // 构建 ARB 内容
+    final arbData = <String, dynamic>{
+      '@@locale': 'en',
+      '@@last_modified': DateTime.now().toIso8601String(),
+    };
+
+    // 为每个字符串生成唯一的 key
+    int counter = 0;
+    results.forEach((filePath, strings) {
+      for (final str in strings) {
+        // 生成基于文件路径和字符串内容的 key
+        final key = 'string_${filePath.split('/').last.replaceAll('.dart', '')}_${counter++}';
+        arbData[key] = str;
+        
+        // 添加描述信息
+        arbData['@$key'] = {
+          'description': 'String from ${filePath.split('/').last}',
+          'type': 'text',
+          'placeholders': {},
+        };
+      }
+    });
+
+    // 将数据转换为 JSON 格式
+    final jsonString = const JsonEncoder.withIndent('  ').convert(arbData);
+    final bytes = utf8.encode(jsonString);
+    final file = file_selector.XFile.fromData(
+      Uint8List.fromList(bytes),
+      mimeType: 'application/json; charset=utf-8',
+      name: 'app_en.arb',
+    );
+    
+    try {
+      await file.saveTo(result.path);
+      print('Successfully saved ARB file');
+      return result.path;
+    } catch (e) {
+      print('Error saving ARB file: $e');
+      rethrow;
+    }
+  }
 }
