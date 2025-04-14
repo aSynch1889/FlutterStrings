@@ -8,25 +8,39 @@ class ScanState {
   final bool isScanning;
   final String? error;
   final Map<String, List<String>>? results;
+  final int totalFiles;
+  final int scannedFiles;
+  final String? currentFile;
 
   ScanState({
     this.projectPath,
     this.isScanning = false,
     this.error,
     this.results,
+    this.totalFiles = 0,
+    this.scannedFiles = 0,
+    this.currentFile,
   });
+
+  double get progress => totalFiles == 0 ? 0 : scannedFiles / totalFiles;
 
   ScanState copyWith({
     String? projectPath,
     bool? isScanning,
     String? error,
     Map<String, List<String>>? results,
+    int? totalFiles,
+    int? scannedFiles,
+    String? currentFile,
   }) {
     return ScanState(
       projectPath: projectPath ?? this.projectPath,
       isScanning: isScanning ?? this.isScanning,
       error: error,
       results: results ?? this.results,
+      totalFiles: totalFiles ?? this.totalFiles,
+      scannedFiles: scannedFiles ?? this.scannedFiles,
+      currentFile: currentFile,
     );
   }
 }
@@ -64,17 +78,39 @@ class ScanNotifier extends StateNotifier<ScanState> {
   Future<void> scanProject() async {
     if (state.projectPath == null) return;
 
-    state = state.copyWith(isScanning: true, error: null);
+    state = state.copyWith(
+      isScanning: true,
+      error: null,
+      results: null,
+      totalFiles: 0,
+      scannedFiles: 0,
+      currentFile: null,
+    );
+
     try {
-      final results = await _stringScanner.scanProject(state.projectPath!);
+      final results = await _stringScanner.scanProject(
+        state.projectPath!,
+        onStart: (totalFiles) {
+          state = state.copyWith(totalFiles: totalFiles);
+        },
+        onProgress: (file, scannedFiles) {
+          state = state.copyWith(
+            currentFile: file,
+            scannedFiles: scannedFiles,
+          );
+        },
+      );
+      
       state = state.copyWith(
         isScanning: false,
         results: results,
+        currentFile: null,
       );
     } catch (e) {
       state = state.copyWith(
         isScanning: false,
         error: e.toString(),
+        currentFile: null,
       );
     }
   }

@@ -17,30 +17,54 @@ class StringScanner {
     'lib/generated'
   ];
 
-  Future<Map<String, List<String>>> scanProject(String projectPath) async {
+  Future<Map<String, List<String>>> scanProject(
+    String projectPath, {
+    required void Function(int totalFiles) onStart,
+    required void Function(String file, int scannedFiles) onProgress,
+  }) async {
     final results = <String, List<String>>{};
     final excludedPaths = excludedFolders
         .map((folder) => join(projectPath, folder))
         .toList();
 
     // 获取 Dart SDK 路径
-    final sdkPath = _getDartSdkPath();
+    final sdkPath = await _getDartSdkPath();
     if (sdkPath == null) {
-      throw Exception('Cannot find Dart SDK path');
+      throw Exception('Cannot find Dart SDK path. Please make sure Flutter is properly installed.');
     }
+
+    print('Using Dart SDK path: $sdkPath');
 
     final collection = AnalysisContextCollection(
       includedPaths: [projectPath],
       excludedPaths: excludedPaths,
-      sdkPath: sdkPath,  // 添加 SDK 路径
+      sdkPath: sdkPath,
     );
 
+    // 获取所有需要分析的文件
+    final allFiles = <String>[];
+    for (final context in collection.contexts) {
+      allFiles.addAll(
+        context.contextRoot.analyzedFiles()
+            .where((path) => path.endsWith('.dart'))
+            .where((path) => !excludedPaths.any((excluded) => path.startsWith(excluded)))
+      );
+    }
+
+    // 通知总文件数
+    onStart(allFiles.length);
+
+    // 分析每个文件
+    int scannedCount = 0;
     for (final context in collection.contexts) {
       final analyzedFiles = context.contextRoot.analyzedFiles()
           .where((path) => path.endsWith('.dart'))
           .where((path) => !excludedPaths.any((excluded) => path.startsWith(excluded)));
 
       for (final filePath in analyzedFiles) {
+        // 通知当前进度
+        onProgress(filePath, ++scannedCount);
+
         final result = await context.currentSession.getResolvedUnit(filePath);
         if (result is ResolvedUnitResult) {
           final visitor = _StringLiteralVisitor();

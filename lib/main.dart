@@ -149,20 +149,49 @@ class HomeScreen extends ConsumerWidget {
                       // 扫描按钮
                       SizedBox(
                         width: double.infinity,
-                        child: FilledButton.icon(
-                          onPressed: () {
-                            if (state.projectPath != null) {
-                              ref.read(scanProvider.notifier).scanProject();
-                            } else {
-                              ref.read(scanProvider.notifier).selectProject();
-                            }
-                          },
-                          icon: Icon(
-                            state.isScanning ? Icons.stop : Icons.play_arrow,
-                          ),
-                          label: Text(
-                            state.isScanning ? '停止扫描' : '开始扫描',
-                          ),
+                        child: Column(
+                          children: [
+                            FilledButton.icon(
+                              onPressed: () {
+                                if (state.projectPath != null) {
+                                  ref.read(scanProvider.notifier).scanProject();
+                                } else {
+                                  ref.read(scanProvider.notifier).selectProject();
+                                }
+                              },
+                              icon: Icon(
+                                state.isScanning ? Icons.stop : Icons.play_arrow,
+                              ),
+                              label: Text(
+                                state.isScanning ? '停止扫描' : '开始扫描',
+                              ),
+                            ),
+                            if (state.isScanning) ...[
+                              const SizedBox(height: 16),
+                              LinearProgressIndicator(
+                                value: state.progress,
+                                backgroundColor: Colors.grey[200],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '正在扫描: ${state.currentFile?.split('/').last ?? ''}',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 12,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '进度: ${(state.progress * 100).toStringAsFixed(1)}% (${state.scannedFiles}/${state.totalFiles})',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ],
@@ -334,7 +363,56 @@ class HomeScreen extends ConsumerWidget {
                                       title: Text(
                                         str,
                                         style: const TextStyle(fontSize: 14),
+                                        maxLines: 3,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
+                                      subtitle: Text(
+                                        '长度: ${str.length}${str.contains('\n') ? ' (多行)' : ''}',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      onTap: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: const Text('字符串详情'),
+                                            content: SingleChildScrollView(
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text('文件: ${entry.key}'),
+                                                  const SizedBox(height: 8),
+                                                  const Text('内容:'),
+                                                  Container(
+                                                    margin: const EdgeInsets.only(top: 8),
+                                                    padding: const EdgeInsets.all(12),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.grey[100],
+                                                      borderRadius: BorderRadius.circular(4),
+                                                    ),
+                                                    child: SelectableText(
+                                                      str,
+                                                      style: const TextStyle(
+                                                        fontFamily: 'monospace',
+                                                        fontSize: 14,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.of(context).pop(),
+                                                child: const Text('关闭'),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
                                     )).toList(),
                                   ),
                                 );
