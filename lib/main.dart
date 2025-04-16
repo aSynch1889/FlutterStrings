@@ -158,10 +158,15 @@ class HomeScreen extends ConsumerWidget {
                             children: [
                               FilledButton.icon(
                                 onPressed: () {
-                                  if (state.projectPath != null) {
-                                    ref.read(scanProvider.notifier).scanProject();
+                                  // 添加停止逻辑
+                                  if (state.isScanning) {
+                                    ref.read(scanProvider.notifier).stopScan();
                                   } else {
-                                    ref.read(scanProvider.notifier).selectProject();
+                                    if (state.projectPath != null) {
+                                      ref.read(scanProvider.notifier).scanProject();
+                                    } else {
+                                      ref.read(scanProvider.notifier).selectProject();
+                                    }
                                   }
                                 },
                                 icon: Icon(
@@ -173,13 +178,15 @@ class HomeScreen extends ConsumerWidget {
                               ),
                               if (state.isScanning) ...[
                                 const SizedBox(height: 16),
+                                // 使用不确定进度条
                                 LinearProgressIndicator(
-                                  value: state.progress,
+                                  value: null, // 设置为 null 表示不确定进度
                                   backgroundColor: Colors.grey[200],
                                 ),
                                 const SizedBox(height: 8),
+                                // 可以显示一个通用的扫描中提示
                                 Text(
-                                  '正在扫描: ${state.currentFile?.split('/').last ?? ''}',
+                                  '正在扫描项目...',
                                   style: TextStyle(
                                     color: Colors.grey[600],
                                     fontSize: 12,
@@ -187,14 +194,7 @@ class HomeScreen extends ConsumerWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '进度: ${(state.progress * 100).toStringAsFixed(1)}% (${state.scannedFiles}/${state.totalFiles})',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 12,
-                                  ),
-                                ),
+                                // 移除显示具体文件和进度的 Text Widgets
                               ],
                             ],
                           ),
