@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart'; // 导入 compute
 import '../desktop/file_selector.dart';
 import '../core/string_scanner.dart'; // 确保 StringScanner 和它的方法签名在这里定义
+import '../core/config.dart';
 
 class ScanState {
   final String? projectPath;
@@ -12,6 +13,7 @@ class ScanState {
   final int totalFiles;
   final int scannedFiles;
   final String? currentFile;
+  final String? sdkPath;
 
   ScanState({
     this.projectPath,
@@ -21,6 +23,7 @@ class ScanState {
     this.totalFiles = 0,
     this.scannedFiles = 0,
     this.currentFile,
+    this.sdkPath,
   });
 
   double get progress => totalFiles == 0 ? 0 : scannedFiles / totalFiles;
@@ -33,6 +36,7 @@ class ScanState {
     int? totalFiles,
     int? scannedFiles,
     String? currentFile,
+    String? sdkPath,
   }) {
     return ScanState(
       projectPath: projectPath ?? this.projectPath,
@@ -42,6 +46,7 @@ class ScanState {
       totalFiles: totalFiles ?? this.totalFiles,
       scannedFiles: scannedFiles ?? this.scannedFiles,
       currentFile: currentFile,
+      sdkPath: sdkPath ?? this.sdkPath,
     );
   }
 }
@@ -50,13 +55,16 @@ class ScanState {
 // 注意：这个函数在独立的 Isolate 中运行，不能直接访问 ScanNotifier 的 state
 // 它也不能直接使用 ScanNotifier 里的实例变量
 // 它接收项目路径作为参数，并返回扫描结果
-Future<Map<String, List<String>>> _scanProjectIsolate(String projectPath) async {
+Future<Map<String, List<String>>> _scanProjectIsolate(Map<String, dynamic> params) async {
+  final projectPath = params['projectPath'] as String;
+  final sdkPath = params['sdkPath'] as String;
+  
   // 在 Isolate 中创建 StringScanner 实例
   final stringScanner = StringScanner();
-  // 调用扫描方法，并提供必需的 onStart 和 onProgress 参数 (即使是空实现)
-  // 假设 StringScanner.scanProject 需要 onStart 和 onProgress
+  // 调用扫描方法，并提供必需的 onStart 和 onProgress 参数
   final results = await stringScanner.scanProject(
     projectPath,
+    sdkPath: sdkPath,
     onStart: (total) {
       // 在 isolate 中无法更新主 UI 状态，留空或进行 isolate 内部的日志记录
       debugPrint('[Isolate] Scan started. Total files: $total');
@@ -73,12 +81,15 @@ Future<Map<String, List<String>>> _scanProjectIsolate(String projectPath) async 
 
 class ScanNotifier extends StateNotifier<ScanState> {
   final FileSelector _fileSelector;
+  final AppConfig _config;
   // StringScanner 实例不再需要在这里持有
 
   // 2. 修正构造函数语法
   ScanNotifier({
     FileSelector? fileSelector, // 移除 StringScanner 参数
+    AppConfig? config,
   }) : _fileSelector = fileSelector ?? FileSelector(), // 修正初始化列表
+       _config = config ?? AppConfig(),
        super(ScanState()); // super 调用放在初始化列表末尾
 
   Future<void> selectProject() async {
@@ -104,6 +115,17 @@ class ScanNotifier extends StateNotifier<ScanState> {
   Future<void> scanProject() async {
     if (state.projectPath == null || state.isScanning) return;
 
+    // 加载配置
+    await _config.loadConfig();
+    final sdkPath = _config.dartSdkPath;
+    if (sdkPath == null) {
+      state = state.copyWith(
+        isScanning: false,
+        error: '未配置 SDK 路径，请在设置中配置 SDK 路径。',
+      );
+      return;
+    }
+
     state = state.copyWith(
       isScanning: true,
       error: null,
@@ -111,11 +133,14 @@ class ScanNotifier extends StateNotifier<ScanState> {
       totalFiles: 0,
       scannedFiles: 0,
       currentFile: null,
-      // progress: 0.0, // 移除或保持为0，因为进度条将是不确定的
+      sdkPath: sdkPath,
     );
 
     try {
-      final results = await compute(_scanProjectIsolate, state.projectPath!);
+      final results = await compute(_scanProjectIsolate, {
+        'projectPath': state.projectPath!,
+        'sdkPath': sdkPath,
+      });
 
       if (!mounted) return; // 检查 Notifier 是否还存在
       if (!state.isScanning) {
