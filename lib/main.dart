@@ -4,16 +4,41 @@ import 'providers/scan_provider.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'dart:io';
 import 'screens/settings_screen.dart';
+import 'core/config.dart';
+
+final themeProvider = StateNotifierProvider<ThemeNotifier, bool>((ref) {
+  return ThemeNotifier();
+});
+
+class ThemeNotifier extends StateNotifier<bool> {
+  final _config = AppConfig();
+
+  ThemeNotifier() : super(false) {
+    _loadTheme();
+  }
+
+  Future<void> _loadTheme() async {
+    await _config.loadConfig();
+    state = _config.isDarkMode;
+  }
+
+  Future<void> toggleTheme(bool value) async {
+    await _config.saveConfig(isDarkMode: value);
+    state = value;
+  }
+}
 
 void main() {
   runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDarkMode = ref.watch(themeProvider);
+    
     return MaterialApp(
       title: '字符串扫描器',
       theme: ThemeData(
@@ -23,6 +48,14 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
       home: const HomeScreen(),
     );
   }
@@ -35,16 +68,17 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(scanProvider);
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: isDark ? colorScheme.surface : Colors.grey[100],
       body: Row(
         children: [
           // 左侧面板
           Container(
             width: 300,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colorScheme.surface,
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
@@ -63,15 +97,16 @@ class HomeScreen extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         '字符串扫描器',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.settings),
+                        icon: Icon(Icons.settings, color: colorScheme.onSurface),
                         tooltip: '设置',
                         onPressed: () {
                           Navigator.of(context).push(
@@ -83,10 +118,10 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
-                  const Text(
+                  Text(
                     '扫描项目中的字符串',
                     style: TextStyle(
-                      color: Colors.grey,
+                      color: colorScheme.onSurfaceVariant,
                       fontSize: 14,
                     ),
                   ),
@@ -95,10 +130,10 @@ class HomeScreen extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.grey[50],
+                      color: isDark ? colorScheme.surfaceVariant : Colors.grey[50],
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: Colors.grey[200]!,
+                        color: isDark ? colorScheme.outline : Colors.grey[200]!,
                         width: 1,
                       ),
                     ),
@@ -106,11 +141,12 @@ class HomeScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text(
+                        Text(
                           '扫描控制',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -129,7 +165,7 @@ class HomeScreen extends ConsumerWidget {
                             builder: (context, candidateData, rejectedData) {
                               final isDragging = candidateData.isNotEmpty;
                               return DottedBorder(
-                                color: isDragging ? colorScheme.primary : Colors.grey[400]!,
+                                color: isDragging ? colorScheme.primary : colorScheme.outline,
                                 strokeWidth: 1,
                                 dashPattern: const [6, 3],
                                 borderType: BorderType.RRect,
@@ -148,14 +184,14 @@ class HomeScreen extends ConsumerWidget {
                                       Icon(
                                         Icons.folder_open_outlined,
                                         size: 40,
-                                        color: isDragging ? colorScheme.primary : colorScheme.primary,
+                                        color: colorScheme.primary,
                                       ),
                                       const SizedBox(height: 10),
                                       Text(
                                         state.projectPath ?? '点击或将文件夹拖拽到此处',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
-                                          color: Colors.grey[600],
+                                          color: colorScheme.onSurfaceVariant,
                                           fontSize: 12,
                                         ),
                                       ),
@@ -175,7 +211,6 @@ class HomeScreen extends ConsumerWidget {
                             children: [
                               FilledButton.icon(
                                 onPressed: () {
-                                  // 添加停止逻辑
                                   if (state.isScanning) {
                                     ref.read(scanProvider.notifier).stopScan();
                                   } else {
@@ -195,23 +230,20 @@ class HomeScreen extends ConsumerWidget {
                               ),
                               if (state.isScanning) ...[
                                 const SizedBox(height: 16),
-                                // 使用不确定进度条
                                 LinearProgressIndicator(
-                                  value: null, // 设置为 null 表示不确定进度
-                                  backgroundColor: Colors.grey[200],
+                                  value: null,
+                                  backgroundColor: colorScheme.surfaceVariant,
                                 ),
                                 const SizedBox(height: 8),
-                                // 可以显示一个通用的扫描中提示
                                 Text(
                                   '正在扫描项目...',
                                   style: TextStyle(
-                                    color: Colors.grey[600],
+                                    color: colorScheme.onSurfaceVariant,
                                     fontSize: 12,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                // 移除显示具体文件和进度的 Text Widgets
                               ],
                             ],
                           ),
@@ -224,10 +256,10 @@ class HomeScreen extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.grey[50],
+                      color: isDark ? colorScheme.surfaceVariant : Colors.grey[50],
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: Colors.grey[200]!,
+                        color: isDark ? colorScheme.outline : Colors.grey[200]!,
                         width: 1,
                       ),
                     ),
@@ -235,11 +267,12 @@ class HomeScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text(
+                        Text(
                           '扫描统计',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -249,12 +282,14 @@ class HomeScreen extends ConsumerWidget {
                           value: state.results?.values
                               .fold(0, (sum, strings) => sum + strings.length)
                               .toString() ?? '0',
+                          colorScheme: colorScheme,
                         ),
                         const SizedBox(height: 10),
                         _buildStatItem(
                           icon: Icons.insert_drive_file,
                           label: '文件数量',
                           value: state.results?.length.toString() ?? '0',
+                          colorScheme: colorScheme,
                         ),
                       ],
                     ),
@@ -265,10 +300,10 @@ class HomeScreen extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.grey[50],
+                        color: isDark ? colorScheme.surfaceVariant : Colors.grey[50],
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: Colors.grey[200]!,
+                          color: isDark ? colorScheme.outline : Colors.grey[200]!,
                           width: 1,
                         ),
                       ),
@@ -276,11 +311,12 @@ class HomeScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
+                          Text(
                             '导出选项',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
+                              color: colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 20),
@@ -288,18 +324,21 @@ class HomeScreen extends ConsumerWidget {
                             icon: Icons.code,
                             label: '导出为 JSON',
                             onPressed: () => ref.read(scanProvider.notifier).exportAsJson(),
+                            colorScheme: colorScheme,
                           ),
                           const SizedBox(height: 10),
                           _buildExportButton(
                             icon: Icons.table_chart,
                             label: '导出为 CSV',
                             onPressed: () => ref.read(scanProvider.notifier).exportAsCsv(),
+                            colorScheme: colorScheme,
                           ),
                           const SizedBox(height: 10),
                           _buildExportButton(
                             icon: Icons.language,
                             label: '导出本地化文件',
                             onPressed: () => ref.read(scanProvider.notifier).exportAsArb(),
+                            colorScheme: colorScheme,
                           ),
                         ],
                       ),
@@ -313,7 +352,7 @@ class HomeScreen extends ConsumerWidget {
             child: Container(
               margin: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: colorScheme.surface,
                 borderRadius: BorderRadius.circular(8),
                 boxShadow: [
                   BoxShadow(
@@ -329,7 +368,7 @@ class HomeScreen extends ConsumerWidget {
                       ? Center(
                           child: Text(
                             state.error!,
-                            style: const TextStyle(color: Colors.red),
+                            style: TextStyle(color: colorScheme.error),
                           ),
                         )
                       : state.results == null || state.results!.isEmpty
@@ -340,13 +379,13 @@ class HomeScreen extends ConsumerWidget {
                                   Icon(
                                     Icons.search_outlined,
                                     size: 64,
-                                    color: Colors.grey[400],
+                                    color: colorScheme.onSurfaceVariant,
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
                                     '无结果',
                                     style: TextStyle(
-                                      color: Colors.grey[600],
+                                      color: colorScheme.onSurface,
                                       fontSize: 16,
                                     ),
                                   ),
@@ -354,7 +393,7 @@ class HomeScreen extends ConsumerWidget {
                                   Text(
                                     '选择要扫描字符串的项目文件夹',
                                     style: TextStyle(
-                                      color: Colors.grey[400],
+                                      color: colorScheme.onSurfaceVariant,
                                       fontSize: 14,
                                     ),
                                   ),
@@ -369,31 +408,35 @@ class HomeScreen extends ConsumerWidget {
                                 return Card(
                                   margin: const EdgeInsets.only(bottom: 10),
                                   child: ExpansionTile(
-                                    leading: const Icon(Icons.description_outlined),
+                                    leading: Icon(Icons.description_outlined, color: colorScheme.primary),
                                     title: Text(
                                       entry.key.split('/').last,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.w500,
+                                        color: colorScheme.onSurface,
                                       ),
                                     ),
                                     subtitle: Text(
                                       '${entry.value.length} 个字符串',
                                       style: TextStyle(
-                                        color: Colors.grey[600],
+                                        color: colorScheme.onSurfaceVariant,
                                         fontSize: 12,
                                       ),
                                     ),
                                     children: entry.value.map((str) => ListTile(
                                       title: Text(
                                         str,
-                                        style: const TextStyle(fontSize: 14),
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: colorScheme.onSurface,
+                                        ),
                                         maxLines: 3,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       subtitle: Text(
                                         '长度: ${str.length}${str.contains('\n') ? ' (多行)' : ''}',
                                         style: TextStyle(
-                                          color: Colors.grey[600],
+                                          color: colorScheme.onSurfaceVariant,
                                           fontSize: 12,
                                         ),
                                       ),
@@ -401,27 +444,37 @@ class HomeScreen extends ConsumerWidget {
                                         showDialog(
                                           context: context,
                                           builder: (context) => AlertDialog(
-                                            title: const Text('字符串详情'),
+                                            title: Text(
+                                              '字符串详情',
+                                              style: TextStyle(color: colorScheme.onSurface),
+                                            ),
                                             content: SingleChildScrollView(
                                               child: Column(
                                                 mainAxisSize: MainAxisSize.min,
                                                 crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
-                                                  Text('文件: ${entry.key}'),
+                                                  Text(
+                                                    '文件: ${entry.key}',
+                                                    style: TextStyle(color: colorScheme.onSurface),
+                                                  ),
                                                   const SizedBox(height: 8),
-                                                  const Text('内容:'),
+                                                  Text(
+                                                    '内容:',
+                                                    style: TextStyle(color: colorScheme.onSurface),
+                                                  ),
                                                   Container(
                                                     margin: const EdgeInsets.only(top: 8),
                                                     padding: const EdgeInsets.all(12),
                                                     decoration: BoxDecoration(
-                                                      color: Colors.grey[100],
+                                                      color: colorScheme.surfaceVariant,
                                                       borderRadius: BorderRadius.circular(4),
                                                     ),
                                                     child: SelectableText(
                                                       str,
-                                                      style: const TextStyle(
+                                                      style: TextStyle(
                                                         fontFamily: 'monospace',
                                                         fontSize: 14,
+                                                        color: colorScheme.onSurface,
                                                       ),
                                                     ),
                                                   ),
@@ -431,7 +484,7 @@ class HomeScreen extends ConsumerWidget {
                                             actions: [
                                               TextButton(
                                                 onPressed: () => Navigator.of(context).pop(),
-                                                child: const Text('关闭'),
+                                                child: Text('关闭'),
                                               ),
                                             ],
                                           ),
@@ -453,24 +506,26 @@ class HomeScreen extends ConsumerWidget {
     required IconData icon,
     required String label,
     required String value,
+    required ColorScheme colorScheme,
   }) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: Colors.grey[600]),
+        Icon(icon, size: 16, color: colorScheme.onSurfaceVariant),
         const SizedBox(width: 8),
         Text(
           label,
           style: TextStyle(
-            color: Colors.grey[600],
+            color: colorScheme.onSurfaceVariant,
             fontSize: 14,
           ),
         ),
         const Spacer(),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w500,
             fontSize: 14,
+            color: colorScheme.onSurface,
           ),
         ),
       ],
@@ -481,6 +536,7 @@ class HomeScreen extends ConsumerWidget {
     required IconData icon,
     required String label,
     required VoidCallback onPressed,
+    required ColorScheme colorScheme,
   }) {
     return SizedBox(
       width: double.infinity,

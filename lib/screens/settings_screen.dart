@@ -3,15 +3,17 @@ import 'package:file_selector/file_selector.dart' as file_selector;
 import '../core/config.dart';
 import 'dart:io';
 import 'package:path/path.dart' as path;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../main.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _config = AppConfig();
   String? _sdkPath;
   bool _isLoading = true;
@@ -31,6 +33,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
+  Future<void> _toggleDarkMode(bool value) async {
+    await ref.read(themeProvider.notifier).toggleTheme(value);
+  }
+
   Future<void> _selectDartExecutable() async {
     final String? directoryPath = await file_selector.getDirectoryPath();
     
@@ -44,7 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final isValid = await Directory(libPath).exists() && await File(metadataPath).exists();
       
       if (isValid) {
-        await _config.saveConfig(sdkPath);
+        await _config.saveConfig(dartSdkPath: sdkPath);
         setState(() => _sdkPath = sdkPath);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('SDK 路径已更新')),
@@ -59,6 +65,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = ref.watch(themeProvider);
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('设置'),
@@ -103,6 +111,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             onPressed: _selectDartExecutable,
                             icon: const Icon(Icons.folder_open),
                             label: const Text('选择 Flutter SDK 目录'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    '外观设置',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            '暗黑模式',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Switch(
+                            value: isDarkMode,
+                            onChanged: _toggleDarkMode,
                           ),
                         ],
                       ),

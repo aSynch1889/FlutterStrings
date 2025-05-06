@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 class AppConfig {
   static const String _configFileName = 'flutter_strings_config.json';
   String? _dartSdkPath;
+  bool _isDarkMode = false;
   static AppConfig? _instance;
 
   factory AppConfig() {
@@ -17,6 +18,7 @@ class AppConfig {
   AppConfig._internal();
 
   String? get dartSdkPath => _dartSdkPath;
+  bool get isDarkMode => _isDarkMode;
 
   Future<void> loadConfig() async {
     try {
@@ -27,6 +29,7 @@ class AppConfig {
           final content = await configFile.readAsString();
           final config = json.decode(content) as Map<String, dynamic>;
           _dartSdkPath = config['dartSdkPath'] as String?;
+          _isDarkMode = config['isDarkMode'] as bool? ?? false;
         }
       }
     } catch (e) {
@@ -34,16 +37,18 @@ class AppConfig {
     }
   }
 
-  Future<void> saveConfig(String dartSdkPath) async {
+  Future<void> saveConfig({String? dartSdkPath, bool? isDarkMode}) async {
     try {
       // 确保在主 isolate 中运行
       if (!kIsWeb) {
         final configFile = await _getConfigFile();
         final config = {
-          'dartSdkPath': dartSdkPath,
+          'dartSdkPath': dartSdkPath ?? _dartSdkPath,
+          'isDarkMode': isDarkMode ?? _isDarkMode,
         };
         await configFile.writeAsString(json.encode(config));
-        _dartSdkPath = dartSdkPath;
+        if (dartSdkPath != null) _dartSdkPath = dartSdkPath;
+        if (isDarkMode != null) _isDarkMode = isDarkMode;
       }
     } catch (e) {
       print('Error saving config: $e');
