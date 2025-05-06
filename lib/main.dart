@@ -1,32 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'screens/settings_screen.dart';
+import 'core/config.dart';
+import 'providers/theme_provider.dart';
+import 'providers/language_provider.dart';
 import 'providers/scan_provider.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'dart:io';
-import 'screens/settings_screen.dart';
-import 'core/config.dart';
-
-final themeProvider = StateNotifierProvider<ThemeNotifier, bool>((ref) {
-  return ThemeNotifier();
-});
-
-class ThemeNotifier extends StateNotifier<bool> {
-  final _config = AppConfig();
-
-  ThemeNotifier() : super(false) {
-    _loadTheme();
-  }
-
-  Future<void> _loadTheme() async {
-    await _config.loadConfig();
-    state = _config.isDarkMode;
-  }
-
-  Future<void> toggleTheme(bool value) async {
-    await _config.saveConfig(isDarkMode: value);
-    state = value;
-  }
-}
 
 void main() {
   runApp(const ProviderScope(child: MyApp()));
@@ -38,6 +20,7 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDarkMode = ref.watch(themeProvider);
+    final locale = ref.watch(languageProvider);
     
     return MaterialApp(
       title: '字符串扫描器',
@@ -56,6 +39,9 @@ class MyApp extends ConsumerWidget {
         useMaterial3: true,
       ),
       themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      locale: locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: const HomeScreen(),
     );
   }
@@ -69,6 +55,7 @@ class HomeScreen extends ConsumerWidget {
     final state = ref.watch(scanProvider);
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
     
     return Scaffold(
       backgroundColor: isDark ? colorScheme.surface : Colors.grey[100],
@@ -98,7 +85,7 @@ class HomeScreen extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '字符串扫描器',
+                        l10n.appTitle,
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -107,7 +94,7 @@ class HomeScreen extends ConsumerWidget {
                       ),
                       IconButton(
                         icon: Icon(Icons.settings, color: colorScheme.onSurface),
-                        tooltip: '设置',
+                        tooltip: l10n.settings,
                         onPressed: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
@@ -119,7 +106,7 @@ class HomeScreen extends ConsumerWidget {
                     ],
                   ),
                   Text(
-                    '扫描项目中的字符串',
+                    l10n.selectProjectFolder,
                     style: TextStyle(
                       color: colorScheme.onSurfaceVariant,
                       fontSize: 14,
@@ -142,7 +129,7 @@ class HomeScreen extends ConsumerWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          '扫描控制',
+                          l10n.scanControl,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
@@ -188,7 +175,7 @@ class HomeScreen extends ConsumerWidget {
                                       ),
                                       const SizedBox(height: 10),
                                       Text(
-                                        state.projectPath ?? '点击或将文件夹拖拽到此处',
+                                        state.projectPath ?? l10n.selectProjectFolder,
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                           color: colorScheme.onSurfaceVariant,
@@ -225,7 +212,7 @@ class HomeScreen extends ConsumerWidget {
                                   state.isScanning ? Icons.stop : Icons.play_arrow,
                                 ),
                                 label: Text(
-                                  state.isScanning ? '停止扫描' : '开始扫描',
+                                  state.isScanning ? l10n.stopScan : l10n.scanProject,
                                 ),
                               ),
                               if (state.isScanning) ...[
@@ -236,7 +223,7 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  '正在扫描项目...',
+                                  l10n.scanning,
                                   style: TextStyle(
                                     color: colorScheme.onSurfaceVariant,
                                     fontSize: 12,
@@ -268,7 +255,7 @@ class HomeScreen extends ConsumerWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          '扫描统计',
+                          l10n.scanStats,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
@@ -278,7 +265,7 @@ class HomeScreen extends ConsumerWidget {
                         const SizedBox(height: 20),
                         _buildStatItem(
                           icon: Icons.text_fields,
-                          label: '字符串数量',
+                          label: l10n.stringCount,
                           value: state.results?.values
                               .fold(0, (sum, strings) => sum + strings.length)
                               .toString() ?? '0',
@@ -287,7 +274,7 @@ class HomeScreen extends ConsumerWidget {
                         const SizedBox(height: 10),
                         _buildStatItem(
                           icon: Icons.insert_drive_file,
-                          label: '文件数量',
+                          label: l10n.fileCount,
                           value: state.results?.length.toString() ?? '0',
                           colorScheme: colorScheme,
                         ),
@@ -312,7 +299,7 @@ class HomeScreen extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            '导出选项',
+                            l10n.exportOptions,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
@@ -322,21 +309,21 @@ class HomeScreen extends ConsumerWidget {
                           const SizedBox(height: 20),
                           _buildExportButton(
                             icon: Icons.code,
-                            label: '导出为 JSON',
+                            label: l10n.exportAsJson,
                             onPressed: () => ref.read(scanProvider.notifier).exportAsJson(),
                             colorScheme: colorScheme,
                           ),
                           const SizedBox(height: 10),
                           _buildExportButton(
                             icon: Icons.table_chart,
-                            label: '导出为 CSV',
+                            label: l10n.exportAsCsv,
                             onPressed: () => ref.read(scanProvider.notifier).exportAsCsv(),
                             colorScheme: colorScheme,
                           ),
                           const SizedBox(height: 10),
                           _buildExportButton(
                             icon: Icons.language,
-                            label: '导出本地化文件',
+                            label: l10n.exportAsArb,
                             onPressed: () => ref.read(scanProvider.notifier).exportAsArb(),
                             colorScheme: colorScheme,
                           ),
@@ -383,7 +370,7 @@ class HomeScreen extends ConsumerWidget {
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
-                                    '无结果',
+                                    l10n.noResults,
                                     style: TextStyle(
                                       color: colorScheme.onSurface,
                                       fontSize: 16,
@@ -391,7 +378,7 @@ class HomeScreen extends ConsumerWidget {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    '选择要扫描字符串的项目文件夹',
+                                    l10n.selectProjectFolder,
                                     style: TextStyle(
                                       color: colorScheme.onSurfaceVariant,
                                       fontSize: 14,
@@ -417,7 +404,7 @@ class HomeScreen extends ConsumerWidget {
                                       ),
                                     ),
                                     subtitle: Text(
-                                      '${entry.value.length} 个字符串',
+                                      '${entry.value.length} ${l10n.stringCount}',
                                       style: TextStyle(
                                         color: colorScheme.onSurfaceVariant,
                                         fontSize: 12,
@@ -434,7 +421,7 @@ class HomeScreen extends ConsumerWidget {
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       subtitle: Text(
-                                        '长度: ${str.length}${str.contains('\n') ? ' (多行)' : ''}',
+                                        '${l10n.length}: ${str.length}${str.contains('\n') ? l10n.multiline : ''}',
                                         style: TextStyle(
                                           color: colorScheme.onSurfaceVariant,
                                           fontSize: 12,
@@ -445,7 +432,7 @@ class HomeScreen extends ConsumerWidget {
                                           context: context,
                                           builder: (context) => AlertDialog(
                                             title: Text(
-                                              '字符串详情',
+                                              l10n.stringDetails,
                                               style: TextStyle(color: colorScheme.onSurface),
                                             ),
                                             content: SingleChildScrollView(
@@ -454,12 +441,12 @@ class HomeScreen extends ConsumerWidget {
                                                 crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
-                                                    '文件: ${entry.key}',
+                                                    '${l10n.file}: ${entry.key}',
                                                     style: TextStyle(color: colorScheme.onSurface),
                                                   ),
                                                   const SizedBox(height: 8),
                                                   Text(
-                                                    '内容:',
+                                                    '${l10n.content}:',
                                                     style: TextStyle(color: colorScheme.onSurface),
                                                   ),
                                                   Container(
@@ -484,7 +471,7 @@ class HomeScreen extends ConsumerWidget {
                                             actions: [
                                               TextButton(
                                                 onPressed: () => Navigator.of(context).pop(),
-                                                child: Text('关闭'),
+                                                child: Text(l10n.close),
                                               ),
                                             ],
                                           ),

@@ -5,6 +5,9 @@ import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../main.dart';
+import '../providers/language_provider.dart';
+import '../providers/theme_provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -52,13 +55,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (isValid) {
         await _config.saveConfig(dartSdkPath: sdkPath);
         setState(() => _sdkPath = sdkPath);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('SDK 路径已更新')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context)!.sdkPathUpdated)),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('无法找到有效的 SDK 路径，请确保选择了正确的 Flutter SDK 目录')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppLocalizations.of(context)!.invalidSdkPath)),
+          );
+        }
       }
     }
   }
@@ -66,10 +73,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = ref.watch(themeProvider);
+    final locale = ref.watch(languageProvider);
+    final l10n = AppLocalizations.of(context)!;
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('设置'),
+        title: Text(l10n.settings),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -78,9 +87,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Dart SDK 设置',
-                    style: TextStyle(
+                  Text(
+                    l10n.dartSdkSettings,
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
@@ -92,16 +101,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Dart SDK 路径',
-                            style: TextStyle(
+                          Text(
+                            l10n.dartSdkPath,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            _sdkPath ?? '未设置',
+                            _sdkPath ?? l10n.notSet,
                             style: TextStyle(
                               color: _sdkPath == null ? Colors.grey : null,
                             ),
@@ -110,16 +119,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           FilledButton.icon(
                             onPressed: _selectDartExecutable,
                             icon: const Icon(Icons.folder_open),
-                            label: const Text('选择 Flutter SDK 目录'),
+                            label: Text(l10n.selectFlutterSdk),
                           ),
                         ],
                       ),
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    '外观设置',
-                    style: TextStyle(
+                  Text(
+                    l10n.appearanceSettings,
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
@@ -131,9 +140,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            '暗黑模式',
-                            style: TextStyle(
+                          Text(
+                            l10n.darkMode,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
                             ),
@@ -146,21 +155,66 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 24),
+                  Text(
+                    l10n.languageSettings,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 16),
-                  const Text(
-                    '提示：',
-                    style: TextStyle(
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.language,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          SegmentedButton<String>(
+                            segments: const [
+                              ButtonSegment<String>(
+                                value: 'zh',
+                                label: Text('简体中文'),
+                                icon: Text('🇨🇳'),
+                              ),
+                              ButtonSegment<String>(
+                                value: 'en',
+                                label: Text('English'),
+                                icon: Text('🇺🇸'),
+                              ),
+                            ],
+                            selected: {locale.languageCode},
+                            onSelectionChanged: (Set<String> newSelection) {
+                              ref.read(languageProvider.notifier).setLanguage(newSelection.first);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.tips,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    '• 请选择 Flutter SDK 的根目录\n'
-                    '• 通常位于：flutter/\n'
-                    '• 系统会自动推导出正确的 SDK 路径\n'
-                    '• 如果找不到 SDK，请确保已正确安装 Flutter',
-                    style: TextStyle(color: Colors.grey),
+                  Text(
+                    '${l10n.sdkPathTip1}\n'
+                    '${l10n.sdkPathTip2}\n'
+                    '${l10n.sdkPathTip3}\n'
+                    '${l10n.sdkPathTip4}',
+                    style: const TextStyle(color: Colors.grey),
                   ),
                 ],
               ),

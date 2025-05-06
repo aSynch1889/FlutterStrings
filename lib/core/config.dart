@@ -8,6 +8,7 @@ class AppConfig {
   static const String _configFileName = 'flutter_strings_config.json';
   String? _dartSdkPath;
   bool _isDarkMode = false;
+  String _languageCode = 'zh';
   static AppConfig? _instance;
 
   factory AppConfig() {
@@ -19,6 +20,7 @@ class AppConfig {
 
   String? get dartSdkPath => _dartSdkPath;
   bool get isDarkMode => _isDarkMode;
+  String get languageCode => _languageCode;
 
   Future<void> loadConfig() async {
     try {
@@ -30,6 +32,7 @@ class AppConfig {
           final config = json.decode(content) as Map<String, dynamic>;
           _dartSdkPath = config['dartSdkPath'] as String?;
           _isDarkMode = config['isDarkMode'] as bool? ?? false;
+          _languageCode = config['languageCode'] as String? ?? 'zh';
         }
       }
     } catch (e) {
@@ -37,7 +40,7 @@ class AppConfig {
     }
   }
 
-  Future<void> saveConfig({String? dartSdkPath, bool? isDarkMode}) async {
+  Future<void> saveConfig({String? dartSdkPath, bool? isDarkMode, String? languageCode}) async {
     try {
       // 确保在主 isolate 中运行
       if (!kIsWeb) {
@@ -45,10 +48,12 @@ class AppConfig {
         final config = {
           'dartSdkPath': dartSdkPath ?? _dartSdkPath,
           'isDarkMode': isDarkMode ?? _isDarkMode,
+          'languageCode': languageCode ?? _languageCode,
         };
         await configFile.writeAsString(json.encode(config));
         if (dartSdkPath != null) _dartSdkPath = dartSdkPath;
         if (isDarkMode != null) _isDarkMode = isDarkMode;
+        if (languageCode != null) _languageCode = languageCode;
       }
     } catch (e) {
       print('Error saving config: $e');
