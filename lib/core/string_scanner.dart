@@ -14,8 +14,16 @@ class StringScanner {
     'packages',
     'ios',
     'android',
-    'lib/generated'
+    'lib/generated',
+    'test'
   ];
+
+  // 检查是否是测试文件
+  bool _isTestFile(String filePath) {
+    return filePath.contains('_test.dart') || 
+           filePath.contains('/test/') ||
+           filePath.contains('\\test\\');
+  }
 
   Future<Map<String, List<String>>> scanProject(
     String projectPath, {
@@ -54,6 +62,7 @@ class StringScanner {
         context.contextRoot.analyzedFiles()
             .where((path) => path.endsWith('.dart'))
             .where((path) => !excludedPaths.any((excluded) => path.startsWith(excluded)))
+            .where((path) => !_isTestFile(path))
       );
     }
 
@@ -65,7 +74,8 @@ class StringScanner {
     for (final context in collection.contexts) {
       final analyzedFiles = context.contextRoot.analyzedFiles()
           .where((path) => path.endsWith('.dart'))
-          .where((path) => !excludedPaths.any((excluded) => path.startsWith(excluded)));
+          .where((path) => !excludedPaths.any((excluded) => path.startsWith(excluded)))
+          .where((path) => !_isTestFile(path));
 
       for (final filePath in analyzedFiles) {
         // 通知当前进度
