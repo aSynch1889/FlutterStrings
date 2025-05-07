@@ -88,18 +88,30 @@ class StringScanner {
 
 class _StringLiteralVisitor extends RecursiveAstVisitor<void> {
   final List<String> strings = [];
+  bool _isInImportStatement = false;
+
+  @override
+  void visitImportDirective(ImportDirective node) {
+    _isInImportStatement = true;
+    super.visitImportDirective(node);
+    _isInImportStatement = false;
+  }
 
   @override
   void visitSimpleStringLiteral(SimpleStringLiteral node) {
-    _addString(node.literal.lexeme);
+    if (!_isInImportStatement) {
+      _addString(node.literal.lexeme);
+    }
     super.visitSimpleStringLiteral(node);
   }
 
   @override
   void visitAdjacentStrings(AdjacentStrings node) {
-    for (final string in node.strings) {
-      if (string is SimpleStringLiteral) {
-        _addString(string.literal.lexeme);
+    if (!_isInImportStatement) {
+      for (final string in node.strings) {
+        if (string is SimpleStringLiteral) {
+          _addString(string.literal.lexeme);
+        }
       }
     }
     super.visitAdjacentStrings(node);
